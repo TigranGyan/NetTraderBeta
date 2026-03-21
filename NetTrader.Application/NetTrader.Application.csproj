@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<ItemGroup>
+		<PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="10.0.3" />
+		<!-- FIX: IndicatorEnrichmentService (extracted from Worker) uses Skender for RSI, EMA, ATR etc. -->
+		<PackageReference Include="Skender.Stock.Indicators" Version="2.7.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\NetTrader.Domain\NetTrader.Domain.csproj" />
+	</ItemGroup>
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+
+</Project>

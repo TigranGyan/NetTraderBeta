@@ -1,0 +1,47 @@
+﻿name: Deploy NetTrader to Google Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Скачиваем свежий код из репозитория
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # 2. Авторизуемся в Google Cloud с помощью скрытого ключа
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+    # 3. Настраиваем Docker для работы с Google Artifact Registry
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      
+    - name: Configure Docker
+      run: gcloud auth configure-docker europe-west4-docker.pkg.dev
+
+    # 4. Собираем Docker-образ твоего бота
+    - name: Build Docker Image
+      run: |
+        docker build -t europe-west4-docker.pkg.dev/poised-time-459706-q5/nettrader-repo/bot-image:latest .
+        docker push europe-west4-docker.pkg.dev/poised-time-459706-q5/nettrader-repo/bot-image:latest
+
+    # 5. Обновляем виртуальную машину в Google Cloud новым кодом и передаем секреты
+    - name: Deploy to Compute Engine
+      run: |
+        gcloud compute instances update-container nettrader-vm \
+          --zone=europe-west4-a \
+          --container-image=europe-west4-docker.pkg.dev/poised-time-459706-q5/nettrader-repo/bot-image:latest \
+          --container-env=Binance__ApiKey="${{ secrets.BINANCE_API_KEY }}" \
+          --container-env=Binance__ApiSecret="${{ secrets.BINANCE_API_SECRET }}" \
+          --container-env=Telegram__BotToken="${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+          --container-env=Telegram__ChatId="${{ secrets.TELEGRAM_CHAT_ID }}" \
+          --container-env=AiApi__ApiKey="${{ secrets.GEMINI_API_KEY }}" \
+          --container-env=ConnectionStrings__DbConnectionString="${{ secrets.DBCONNECTIONSTRING }}"
