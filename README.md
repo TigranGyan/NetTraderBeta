@@ -1,78 +1,155 @@
-# 📈 NetTrader: Advanced AI Quantitative Grid Bot
+# NetTrader: Advanced AI Quantitative Trading Bot
 
 ![.NET 9](https://img.shields.io/badge/.NET-9.0-512BD4?style=for-the-badge&logo=dotnet)
 ![Docker](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Binance](https://img.shields.io/badge/Binance-FCD535?style=for-the-badge&logo=binance&logoColor=black)
+![Bybit](https://img.shields.io/badge/Bybit-000000?style=for-the-badge&logo=bybit&logoColor=white)
 ![Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white)
+![ML.NET](https://img.shields.io/badge/ML.NET-512BD4?style=for-the-badge&logo=dotnet)
 
-> **EN:** An autonomous cryptocurrency futures trading bot built on .NET 9. It leverages Gemini AI with Deep Research (Google Search integration) to analyze macroeconomics and market sentiment, selects the best pairs, and executes grid strategies. Features hardware Trailing Stop-Loss for profit maximization and multi-level risk management.
-> **RU:** Автономный торговый бот для фьючерсов на базе .NET 9. Использует Gemini AI с функцией Deep Research (поиск Google) для анализа макроэкономики и настроений рынка. Бот сам выбирает пары, расставляет сетки, использует аппаратный Trailing Stop от Binance для максимизации прибыли и имеет многоуровневый риск-менеджмент.
-
----
-
-## 🚀 Key Features / Ключевые особенности
-
-* 🧠 **AI Deep Research (Глубокий анализ ИИ):**
-  * **EN:** The AI doesn't just look at technical indicators (RSI, ATR, EMA 200). It actively uses Google Search to analyze the FED rate, Crypto Fear & Greed Index, and coin-specific news (unlocks, hacks) before opening a position.
-  * **RU:** ИИ анализирует не только технические индикаторы (RSI, ATR, EMA 200). Перед открытием сделки он гуглит макроэкономические данные, индекс страха и жадности, а также новости по конкретным монетам, защищая от входа перед плохими новостями.
-
-* 🔥 **Smart Trailing Stop (Умный Трейлинг-стоп):**
-  * **EN:** Profitable grids are not prematurely closed. The bot transfers control to Binance's hardware `TRAILING_STOP_MARKET` (with a 1.5% callback rate) to ride the trend and maximize profits automatically.
-  * **RU:** Прибыльные позиции не закрываются раньше времени. Бот снимает сетку и передает управление аппаратному `TRAILING_STOP_MARKET` на серверах Binance (откат 1.5%), выжимая из тренда максимум.
-
-* 🛡️ **Multi-level Risk Management (Многоуровневая защита):**
-  * **EN:** Includes an Absolute Stop-Loss (e.g., stops trading if balance drops below 50%) and a Daily Drawdown limit (pauses trading for 12h if daily loss exceeds 10%).
-  * **RU:** Включает абсолютный стоп-кран (выключается при потере 50% депозита) и дневной лимит просадки (пауза на 12 часов при убытке >10% за день).
-
-* 🔄 **AI Fallback System (Безотказность ИИ):**
-  * **EN:** Dual-model architecture with per-step timeouts. Prioritizes `Gemini 3.1 Pro`, but instantly falls back to `Gemini 3 Flash` if the primary model is slow or overloaded. Each fallback step has a 3-minute timeout to prevent blocking the trading cycle.
-  * **RU:** Архитектура двух моделей с таймаутом на каждый шаг. Бот стучится в умную `Gemini 3.1 Pro`, но при сбоях API моментально переключается на безотказную `Gemini 3 Flash`. Каждый шаг имеет 3-минутный лимит, чтобы не блокировать торговый цикл.
-
-* 📱 **Interactive Telegram Control (Управление через Telegram):**
-  * **EN:** Real-time logging, daily PnL reports, and emergency commands (`/panic` to close all positions, `/pause` to halt execution). Commands are validated against both chat ID and user ID for security.
-  * **RU:** Логирование в реальном времени, ежедневные отчеты о прибыли и экстренные команды (`/panic` для закрытия всех позиций по рынку, `/pause` для паузы). Команды валидируются по chat ID и user ID для безопасности.
+> Autonomous futures trading bot on .NET 9. Three-layer analysis: **ML Quick Scan** (every 15s) filters entries with 24 features, **Gemini AI** analyzes macro + news, **Trailing Stop** with leverage correction locks profits. Supports **Binance** and **Bybit** concurrently.
 
 ---
 
-## 🏗 System Architecture / Архитектура системы
+## Architecture
 
-**EN:** The project follows **Clean Architecture** principles. Business logic is strictly decoupled from external providers (Binance, Gemini, Telegram, PostgreSQL).
-**RU:** Проект построен на принципах **Clean Architecture**. Бизнес-логика строго отделена от внешних провайдеров (Binance, Gemini, Telegram, PostgreSQL).
+```
+Triple-Loop Architecture:
+  EVERY 1s   Commands (Telegram: /panic, /pause, /leverage)
+  EVERY 10s  Fast Monitor (ROI check, Trailing Stop activation)
+  EVERY 15s  ML Quick Scan (24 features, GAP>8% triggers AI)
+  EVERY 30m  Scheduled AI Cycle (full macro + Gemini analysis)
+  COOLDOWN 5m  Between AI cycles (avoid API spam)
 
-### Layer Breakdown / Разделение слоев:
-
-* **`NetTrader.Domain`**
-  * **EN:** Core entities (`GridSettings`, `MarketData`, `TradeSession`), interfaces, constants (`TradeStatus`, `SymbolConfig`), and FluentValidation rules. No external dependencies.
-  * **RU:** Основные сущности, интерфейсы, константы (`TradeStatus`, `SymbolConfig`) и правила валидации FluentValidation. Ноль внешних зависимостей.
-* **`NetTrader.Application`**
-  * **EN:** Orchestrates trading logic via `GridTradingManager`. Handles mathematical calculations for grid levels and indicator enrichment via `IndicatorEnrichmentService`.
-  * **RU:** Координирует торговую логику через `GridTradingManager`. Выполняет математические расчеты уровней сетки и обогащение индикаторами через `IndicatorEnrichmentService`.
-* **`NetTrader.Infrastructure`**
-  * **EN:** External service integrations: `BinanceFuturesClient`, `GeminiAdvisor`, `TelegramService`, and Entity Framework Core for PostgreSQL. Includes Polly for resilience.
-  * **RU:** Интеграция внешних сервисов: API Binance, Gemini, Telegram и работа с базой данных PostgreSQL через EF Core. Включает Polly для отказоустойчивости.
-* **`NetTrader.Worker`**
-  * **EN:** The entry point. A background service running the autonomous trading loop and Telegram listener.
-  * **RU:** Точка входа. Фоновая служба, запускающая цикл автономной торговли и слушатель Telegram-команд.
-
----
-
-## ⚙️ Tech Stack / Технологии
-
-* **Core:** C# / .NET 9 (Worker Service)
-* **AI:** Google Gemini API (`gemini-3.1-pro-preview` & `gemini-3-flash-preview` + Google Search Tool)
-* **Exchange:** Binance Futures (REST API, HMAC SHA256 signatures)
-* **Database:** PostgreSQL (Entity Framework Core)
-* **Indicators:** Skender.Stock.Indicators (RSI, ATR, EMA, ADX, MACD, Bollinger Bands)
-* **Resilience:** Polly (Retry + Circuit Breaker)
-* **Validation:** FluentValidation (AI output sanity checks)
-* **Logging:** Serilog (Console + File + optional Seq)
-* **DevOps:** Docker, GitHub Actions, Google Cloud Compute Engine
+AI Cycle Pipeline:
+┌─────────────────────────────────────────────────────────────────┐
+│  1. MacroAnalyzer    → Fear & Greed, BTC Dominance, FOMC       │
+│  2. GetTopVolatility → top 30 volatile pairs (WebSocket cache) │
+│  3. IndicatorEnricher→ RSI/ADX/EMA/MACD/ATR/Squeeze/BBands    │
+│  4. MLSignalService  → 24 features → P(LONG) + P(SHORT)       │
+│  5. GeminiAdvisor    → AI strategy (v9 prompt, Google Search)  │
+│  6. GridTradingMgr   → margin check, SL/TP, position mgmt     │
+│  7. OrderExecutors   → Binance Futures / Bybit V5 Perpetual   │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## ⚠️ Disclaimer / Отказ от ответственности
+## ML Pipeline v2.1
 
-**EN:** This bot is for educational purposes. Trading cryptocurrency futures involves extremely high risk. The developers are not responsible for any financial losses. Always use the Binance Testnet before trading with real funds.
+**Training data:** 738K rows, 7 symbols (BTC/ETH/SOL/XRP/DOGE/BNB/AVAX), 6 years, 30m candles
 
-**RU:** Этот алгоритм создан исключительно в образовательных целях. Торговля криптовалютными фьючерсами сопряжена с экстремально высоким риском потери капитала. Разработчик не несет ответственности за финансовые убытки. Настоятельно рекомендуется использовать Binance Testnet перед запуском на реальных средствах.
+**Labels (Trailing Stop simulation):**
+- LONG: price hits +3% before -2% within 24 candles (12h)
+- SHORT: price hits -3% before +2% within 24 candles
+- HOLD: everything else
+
+**Model:** FastTree (gradient boosting) + Platt calibration, Weight=1.5x, temporal train/test split
+
+**24 Features:**
+
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | `Adx_30m` | ADX(14) trend strength |
+| 2 | `Volatility24h` | 24h price range % |
+| 3-5 | `Trend_30m/1h/2h` | Momentum (10-period) on 3 timeframes |
+| 6 | `Rsi_30m` | RSI(14) on 30m |
+| 7 | `StochRsi_30m` | Stochastic RSI(14,14,3,1) |
+| 8-9 | `Rsi_1h/2h` | RSI(14) on 1h/2h |
+| 10 | `PositionInRange24h` | Price position in 24h range [0-1] |
+| 11 | `MacdNorm_30m` | MACD histogram / price * 10000 (normalized) |
+| 12 | `AtrPercent_30m` | ATR(14) / price * 100 |
+| 13 | `BBandsWidth_30m` | Bollinger Bands width |
+| 14 | `VolumeSpike` | Volume / SMA(20) ratio |
+| 15 | `VwapDist_30m` | Distance from VWAP % |
+| 16 | `ConsecCandles_30m` | Consecutive same-direction candles |
+| 17-18 | `DistEma50/200_30m` | Distance from EMA(50/200) % |
+| 19-20 | `BtcTrend_1h/BtcRsi_1h` | BTC context (market leader) |
+| 21-23 | `BodyPct/UpperWick/LowerWick` | Candle anatomy ratios |
+| 24 | `HourOfDay` | UTC hour (session patterns) |
+
+**Decision logic:**
+```
+Threshold = 0.44, MinGap = 0.08
+GAP = |P(LONG) - P(SHORT)|
+GAP < 0.08           → HOLD (no confident signal)
+P(LONG) > P(SHORT)   → LONG
+P(SHORT) > P(LONG)   → SHORT
+```
+
+**Metrics (OOS):**
+- AUC-ROC: Long=71.45%, Short=70.83%
+- Precision at optimal threshold: Long=44.8%, Short=44.2%
+- With R:R 1:2.5 (SL -2%, TP +5%), breakeven = 28.5% → **+55$ EV per 100$ risk**
+
+---
+
+## Risk Management
+
+| Level | Trigger | Action |
+|-------|---------|--------|
+| ML Signal | GAP < 8% or P < 44% | HOLD — AI sees signal as info, not blocked |
+| Margin Guard | Available < 0 or < 5$ | Auto-reduce or skip |
+| Stop Loss | -2% from entry | Close position |
+| Take Profit | +5% from entry | Close position |
+| Trailing Stop | ROI > 3% | Activate trailing (callback 0.3%) |
+| Daily Drawdown | Loss > 10% of day start | Pause 12 hours |
+| Balance Guard | Balance < 50% of start | Emergency stop |
+| `/panic` | Telegram command | Close all positions immediately |
+
+---
+
+## Configuration (`appsettings.json`)
+
+```json
+{
+  "Trading": {
+    "CheckIntervalMinutes": 30,
+    "MlQuickScanIntervalSeconds": 15,
+    "MinAiCooldownSeconds": 300,
+    "FastMonitoringIntervalSeconds": 10,
+    "TopVolatilityCount": 30,
+    "DefaultLeverage": 10,
+    "TrailingActivationRoiPercent": 3.0,
+    "TrailingCallbackRatePercent": 3.0,
+    "MaxMarginUsagePercent": 0.8,
+    "EmergencyStopBalancePercent": 0.5,
+    "DailyDrawdownPausePercent": 10,
+    "MlModelPath": "mlmodel"
+  }
+}
+```
+
+---
+
+## Layer Breakdown (Clean Architecture)
+
+* **`NetTrader.Domain`** — entities, interfaces, options, constants. Zero external dependencies.
+* **`NetTrader.Application`** — `GridTradingManager`, `IndicatorEnrichmentService`
+* **`NetTrader.Infrastructure`** — `BinanceFuturesClient`, `BybitClient`, `GeminiAdvisor`, `MLSignalService`, `MacroAnalyzer`, PostgreSQL/EF Core
+* **`NetTrader.Worker`** — `TradingBotWorker` (triple-loop), `TelegramListenerWorker`
+
+---
+
+## Retraining ML Models
+
+```bash
+# 1. Fetch data (7 symbols x 6 years, ~20 min)
+cd NettraderML-Data/LLMData && dotnet run
+
+# 2. Train models (~2 min)
+cd ../NettraderML && dotnet run
+
+# 3. Deploy
+cp output/ModelLong.zip  ../../NetTrader/NetTrader.Worker/mlmodel/
+cp output/ModelShort.zip ../../NetTrader/NetTrader.Worker/mlmodel/
+```
+
+Target: AUC-ROC > 70%, Precision > 42% at threshold 0.44
+
+---
+
+## Disclaimer
+
+This bot is for educational purposes. Trading cryptocurrency futures involves extremely high risk. The developers are not responsible for any financial losses. Always test on small amounts first.
